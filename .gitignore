@@ -3,3 +3,5 @@ Server/data.db
 .env
 .venv
 .idea
+Server/*.db-shm
+Server/*.db-wal
