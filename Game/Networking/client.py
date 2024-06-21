@@ -123,7 +123,7 @@ CONNECT_PATH: str = 'ws://localhost:50000'
 
 class Client(object):
     """ Handles all the client networking side """
-    def __init__(self: Self, launcher: Launcher):
+    def __init__(self, launcher: Launcher):
         self.__launcher: Launcher = launcher
         self.__websocket: Optional[websockets.WebSocketClientProtocol] = None
         self.__data: Dict = {}  # data from the websocket
@@ -138,43 +138,43 @@ class Client(object):
         self.__logger: Logger = self.__launcher.logger
 
     @property
-    def ws(self: Self) -> Optional[websockets.WebSocketClientProtocol]:
+    def ws(self) -> Optional[websockets.WebSocketClientProtocol]:
         return self.__websocket
 
     @property
-    def notifs(self: Self) -> Dict:
+    def notifs(self) -> Dict:
         return self.__notif_data
 
     @property
-    def root(self: Self) -> Optional[Root]:
+    def root(self) -> Optional[Root]:
         return self.__root
 
 
     @property
-    def game_data(self: Self) -> GameData:
+    def game_data(self) -> GameData:
         return self.__GameData
 
     @game_data.setter
-    def game_data(self: Self, payload: GameData) -> None:
+    def game_data(self, payload: GameData) -> None:
         self.__GameData = payload
 
     @property
-    def game_info(self: Self) -> GameInfo:
+    def game_info(self) -> GameInfo:
         return self.__GameInfo
 
     @game_info.setter
-    def game_info(self: Self, payload: GameInfo) -> None:
+    def game_info(self, payload: GameInfo) -> None:
         self.__GameInfo = payload
 
     @property
-    def lobby(self: Self) -> Lobby:
+    def lobby(self) -> Lobby:
         return self.__Lobby
 
     @lobby.setter
-    def lobby(self: Self, payload: Optional[Lobby]) -> None:
+    def lobby(self, payload: Optional[Lobby]) -> None:
         self.__Lobby = payload
 
-    async def recache_users(self: Self) -> None:
+    async def recache_users(self) -> None:
         """ Replaces self.__user_cache with freshly fetched users"""
         new = []
         for user in self.__user_cache:
@@ -183,7 +183,7 @@ class Client(object):
                 new.append(new_user)
         self.__user_cache = new
 
-    async def run(self: Self, websocket: websockets.WebSocketClientProtocol) -> None:
+    async def run(self, websocket: websockets.WebSocketClientProtocol) -> None:
         """ Runs the client """
         self.__websocket: websockets.WebSocketClientProtocol = websocket
         await asyncio.gather(
@@ -191,7 +191,7 @@ class Client(object):
             self.recv_from_server(),
         )
 
-    async def send_heartbeat(self: Self) -> None:
+    async def send_heartbeat(self) -> None:
         """ This sends heartbeats to the server so that the websocket does not time out."""
         try:
             while self.__launcher.runner:
@@ -202,7 +202,7 @@ class Client(object):
         except Exception as e:
             self.__logger.error(f"Error in send_heartbeat: {e}")
 
-    async def recv_game(self: Self, data: Dict) -> None:
+    async def recv_game(self, data: Dict) -> None:
         """ All game data from the server is sent to this function """
         if not self.__launcher.game:
             return
@@ -221,7 +221,7 @@ class Client(object):
                 character: ServerCharacter = self.__launcher.game.lookup_table[name][2]
                 character.update(payload['X'], payload['Y'])
 
-    async def send_game(self: Self) -> None:
+    async def send_game(self) -> None:
         while self.__launcher.game and self.__launcher.runner:
             if self.GameData.to_send['bullets']:
                 for bullet in self.GameData.to_send['bullets'].copy():
@@ -245,7 +245,7 @@ class Client(object):
 
             await asyncio.sleep(0.02)
 
-    async def recv_from_server(self: Self) -> None:
+    async def recv_from_server(self) -> None:
         """ Handles / Redirects all the data from the servers """
         self.__logger.info(f"CONNECTED {self.__websocket}")
         try:
@@ -362,7 +362,7 @@ class Client(object):
             self.__logger.warning(f"WebSocket connection closed unexpectedly: {e}")
             await self.reconnect_and_recv()
 
-    async def reconnect_and_recv(self: Self) -> None:
+    async def reconnect_and_recv(self) -> None:
         """ Attempts to reconnect to the server 5 times in case of a disconnect """
         self.__logger.warning("retrying....")
         try:
@@ -395,7 +395,7 @@ class Client(object):
                 self.__logger.error(f"Error reconnecting to the server: {e}.Attempt(s) {self.__reconnect_attempts[0]} / 5  made! \
                 \nexiting...")
 
-    async def request(self: Self, *, command, gen_id: bool = True, **kwargs) -> str:
+    async def request(self, *, command, gen_id: bool = True, **kwargs) -> str:
         """ Sends a command with kwargs to the websocket with a snowflake id """
         try:
             _id = generate_snowflake() if gen_id else None
@@ -405,7 +405,7 @@ class Client(object):
         except websockets.ConnectionClosedError:
             return ""
 
-    async def handle_request(self: Self, _id: str, *, ret: Any, timeout: int = 1, success: bool = None) -> Any:
+    async def handle_request(self, _id: str, *, ret: Any, timeout: int = 1, success: bool = None) -> Any:
         """
         handles requests made to the server
         _id: str -> the id from calling request
@@ -442,7 +442,7 @@ class Client(object):
             data['kd'] = 0
         return data
 
-    def get_user(self: Self, username: str) -> Optional[User]:
+    def get_user(self, username: str) -> Optional[User]:
         """ Gets a user from cache state """
         def check(u: User):
             return u.username == username
@@ -452,7 +452,7 @@ class Client(object):
         except StopIteration:
             return None
 
-    async def fetch_user(self: Self, username: str) -> Optional[User]:
+    async def fetch_user(self, username: str) -> Optional[User]:
         """ Makes a call to the server to get a user.
             :returns:  Optional[User]
         """
@@ -472,14 +472,14 @@ class Client(object):
             self.__user_cache.append(user)
         return user
 
-    async def get_or_fetch_user(self: Self, username: str) -> Optional[User]:
+    async def get_or_fetch_user(self, username: str) -> Optional[User]:
         """ Gets the user from cache state if exists else fetches the user """
         res = self.get_user(username)
         if not res:
             return await self.fetch_user(username)
         return res
 
-    async def username_lookup(self: Self, username: str, **kwargs) -> bool:
+    async def username_lookup(self, username: str, **kwargs) -> bool:
         """ Checks if a username exists
             KWARGS:
                 use_cache: bool = True -> to check client cache before making a call to the server
@@ -499,7 +499,7 @@ class Client(object):
             return False
         return True
 
-    async def login(self: Self, username: str, password: str) -> Literal[False] | Root:
+    async def login(self, username: str, password: str) -> Literal[False] | Root:
         """ This function logins in a User
 
             Root -> successful login
@@ -527,7 +527,7 @@ class Client(object):
         display.set_caption(f"The Fall: Logged in @ {self.__root.username}")
         return root
 
-    async def register(self: Self, displayname: str, username: str, email: str, password: str,
+    async def register(self, displayname: str, username: str, email: str, password: str,
                        otp: Optional[int] = None) -> False | str | dict | Root:
         """ Called when registering in a user """
 
@@ -562,7 +562,7 @@ class Client(object):
                     display.set_caption(f"The Fall: Logged in @ {self.__root.username}")
                     return root
 
-    async def root_in_game(self: Self) -> bool:
+    async def root_in_game(self) -> bool:
         """
         Checks if root users last_game_id is still a running game
         if it is then the user is prompted to reconnect to the game and cannot join / create other lobbies
@@ -583,7 +583,7 @@ class Client(object):
             result = self.__data[_id]
             return result['status']
 
-    async def send_fpwd_code(self: Self, username: str, email: str) -> Dict:
+    async def send_fpwd_code(self, username: str, email: str) -> Dict:
         """ asks the server to send a forgotten password OTP code for the specified username and email """
         _id = await self.request(command="send_fpwd_code", **{
             "username": username,
@@ -597,7 +597,7 @@ class Client(object):
         result = self.__data[_id]
         return result
 
-    async def update_password(self: Self, username: str, email: str, new_password: str, otp_code: str) -> Dict:
+    async def update_password(self, username: str, email: str, new_password: str, otp_code: str) -> Dict:
         """ Updates the password for a user who has forgotten it and provided the valid OTP code"""
         _id = await self.request(command="update_password", **{
             "username": username,
@@ -619,7 +619,7 @@ class Client(object):
         result = self.__data[_id]
         return result
 
-    async def add_friend(self: Self, to_user: User) -> Dict:
+    async def add_friend(self, to_user: User) -> Dict:
         """ Allows a user to accept / send a friend request"""
         if not self.root:
             return {'error': 'authorisation', 'message': 'Invalid Token'}
@@ -638,7 +638,7 @@ class Client(object):
                 self.root.friends.append(data['with'])
             return data
 
-    async def remove_friend(self: Self, with_user: User) -> Dict:
+    async def remove_friend(self, with_user: User) -> Dict:
         """ Allows a user to remove a friend / deny a friend request """
         if not self.root:
             return {'error': 'authorisation', 'message': 'Invalid Token'}
@@ -658,7 +658,7 @@ class Client(object):
                     self.root.friends.remove(data['with'])
             return data
 
-    async def get_outbound_requests(self: Self) -> Dict:
+    async def get_outbound_requests(self) -> Dict:
         """ Shows all friend requests send by the user """
         if not self.root:
             return {'error': 'authorisation', 'message': 'Invalid Token'}
@@ -674,7 +674,7 @@ class Client(object):
 
             return self.__data[_id]['result']
 
-    async def get_inbound_requests(self: Self) -> Dict:
+    async def get_inbound_requests(self) -> Dict:
         """ Shows all friend requests sent to the user """
         if not self.root:
             return {'error': 'authorisation', 'message': 'Invalid Token'}
@@ -690,7 +690,7 @@ class Client(object):
 
             return self.__data[_id]['result']
 
-    async def get_invites(self: Self) -> Dict:
+    async def get_invites(self) -> Dict:
         """ Provides all the lobby invites sent to the user """
         if not self.root:
             return {'error': 'authorisation', 'message': 'Invalid Token'}
@@ -706,7 +706,7 @@ class Client(object):
 
             return self.__data[_id]['result']
 
-    async def create_game(self: Self) -> Dict | GameInfo:
+    async def create_game(self) -> Dict | GameInfo:
         """ Games a game """
         if not self.root or not self.__Lobby:
             return {'error': 'authorisation', 'message': 'Invalid Token'}
@@ -741,7 +741,7 @@ class Client(object):
             self.GameData = GameData()
             return game_info
 
-    async def create_lobby(self: Self) -> Dict:
+    async def create_lobby(self) -> Dict:
         """ Creates a lobby """
         if not self.root:
             return {'error': 'authorisation', 'message': 'Invalid Token'}
@@ -757,7 +757,7 @@ class Client(object):
 
             return self.__data[_id]['result']
 
-    async def join_lobby(self: Self, invite_code: int) -> Dict:
+    async def join_lobby(self, invite_code: int) -> Dict:
         """ Allows the user to join a valid lobby"""
         if not self.root:
             return {'error': 'authorisation', 'message': 'Invalid Token'}
@@ -774,7 +774,7 @@ class Client(object):
 
             return self.__data[_id]['result']
 
-    async def leave_lobby(self: Self) -> Optional[Dict]:
+    async def leave_lobby(self) -> Optional[Dict]:
         """ Allows the user to leave a lobby """
         assert self.__Lobby is not None
         _id = await self.request(command="leave_lobby", **{
@@ -789,7 +789,7 @@ class Client(object):
 
         self.__Lobby = None
 
-    async def invite(self: Self, user: str) -> Dict:
+    async def invite(self, user: str) -> Dict:
         """ Allows a user to invite another to a lobby """
         assert self.__Lobby is not None
         _id = await self.request(command="invite", **{
@@ -805,7 +805,7 @@ class Client(object):
 
         return self.__data[_id]['result']
 
-    async def join_team(self: Self, team: Literal['red', 'switcher', 'blue']) -> None:
+    async def join_team(self, team: Literal['red', 'switcher', 'blue']) -> None:
         """ Allows users to switch teams within the lobby and broadcasts the change to other clients """
         assert self.__Lobby is not None
         lobby = self.__Lobby
@@ -833,7 +833,7 @@ class Client(object):
                 else:
                     lobby.switcher.append(me)
 
-    async def update_game_settings(self: Self) -> Dict:
+    async def update_game_settings(self) -> Dict:
         """ Allows the host to change the game settings and broadcast the changes to other players present """
         assert self.__Lobby is not None
         _id = await self.request(command="update_game_settings", **{
