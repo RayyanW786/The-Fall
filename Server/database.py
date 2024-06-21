@@ -87,6 +87,7 @@ class DBManager:
         self.__server: Server = server
         self.__register_cache: Dict[int, OTPCacheDict] = {}
         self.__fpwd_otp_cache: Dict[int, OTPCacheDict] = {}
+        self.__pool: Optional[asqlite.Pool] = None
         # fpwd is shorthanded for "forgot password" 
         self.__ratelimit_cache: Dict[websockets.WebSocketClientProtocol, RateLimitCacheDict] = {}
         self.__mail_server = aiosmtplib.SMTP(
@@ -98,7 +99,6 @@ class DBManager:
         # self.__mail_server.starttls()
         self.__sender_email: str = getenv('EMAIL')
         self.__sender_password: str = getenv('APP_PASSWORD')
-        self.__mail_server.login(self.__sender_email, self.__sender_password)
 
 
     """ boot up functions """
@@ -147,7 +147,8 @@ class DBManager:
         # loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
 
         # self.__conn: asqlite.Connection = await asqlite.connect('data.db')
-
+        await self.__mail_server.connect()
+        await self.__mail_server.login(self.__sender_email, self.__sender_password)
         self.__pool: asqlite.Pool = await asqlite.create_pool('data.db')
         await self.init_tables()
         asyncio.create_task(self.clear_cache())
