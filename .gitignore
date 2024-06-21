@@ -1,0 +1,5 @@
+__pycache__/
+Server/data.db
+.env
+.venv
+.idea
