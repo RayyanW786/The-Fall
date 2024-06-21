@@ -142,9 +142,9 @@ class DBManager(object):
         """ The server calls this function; this ensures that an asyncio loop is running. """
         # loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
 
-        self.__conn: asqlite.Connection = await asqlite.connect('data.db')
+        # self.__conn: asqlite.Connection = await asqlite.connect('data.db')
 
-        # self.__pool: asqlite.Pool = await asqlite.create_pool('data.db')
+        self.__pool: asqlite.Pool = await asqlite.create_pool('data.db')
         await self.init_tables()
         asyncio.create_task(self.clear_cache())
 
@@ -260,17 +260,17 @@ class DBManager(object):
                 return d
 
         cursor: asqlite.Cursor
-        # async with self.__pool.acquire() as conn:
-        async with self.__conn.cursor() as cursor:
-            res = await cursor.execute(sql, *args, **kwargs)  # type: ignore
-            if ret:
-                if type(ret) == int and ret > 0:
-                    return fmt_type(await res.fetchmany(ret))
-                elif ret == 'one':
-                    return fmt_type(await res.fetchone())
-                elif ret == 'all':
-                    _all = await res.fetchall()
-                    return fmt_type(_all)
+        async with self.__pool.acquire() as conn:
+            async with conn.cursor() as cursor:
+                res = await cursor.execute(sql, *args, **kwargs)  # type: ignore
+                if ret:
+                    if type(ret) == int and ret > 0:
+                        return fmt_type(await res.fetchmany(ret))
+                    elif ret == 'one':
+                        return fmt_type(await res.fetchone())
+                    elif ret == 'all':
+                        _all = await res.fetchall()
+                        return fmt_type(_all)
 
     async def init_tables(self) -> None:
         """ Creates tables needed if they don't already exist """
