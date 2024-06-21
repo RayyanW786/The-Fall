@@ -349,7 +349,7 @@ class Character(pygame.sprite.Sprite):
         window.blit(text_surface, text_rect)
 
 
-class Game(object):
+class Game:
     """ Handles the Game logic """
 
     def __init__(self, screen: Screen):

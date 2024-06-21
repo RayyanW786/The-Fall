@@ -88,7 +88,7 @@ class Game:
     })
 
 
-class Server(object):
+class Server:
     """ Handles all the server side networking """
     def __init__(self):
         self.__clients: Set[websockets.WebSocketServerProtocol, ...] = set()

@@ -35,7 +35,7 @@ import asyncio
 from abc import abstractmethod
 
 
-class InputBox(object):
+class InputBox:
     """ Creates an inputbox """
     def __init__(self, x: int, y: int, w: int, h: int, name: str,
                  text: str = '', max_length: int = 16):

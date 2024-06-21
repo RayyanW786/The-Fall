@@ -44,7 +44,7 @@ logging.basicConfig(
 CONNECT_PATH: str = 'ws://localhost:50000'
 
 
-class Launcher(object):
+class Launcher:
     """ Combines the whole game into a single class which can be run """
     def __init__(self) -> None:
         self.__logger = logging.getLogger('Launcher')
@@ -103,7 +103,7 @@ class Launcher(object):
                 self.setup_screen(username, password)
                 asyncio.create_task(self.__screen.run())
                 while self.__runner:
-                    await asyncio.sleep(0.5)
+                    await asyncio.sleep(0)
         except ConnectionRefusedError:
             self.__logger.error("Cannot connect to game servers, exiting....")
 

@@ -41,7 +41,8 @@ if TYPE_CHECKING:
     from .game import Game
     from logging import Logger
 
-class Screen(object):
+
+class Screen:
     """ Handles the screen functionality via pygame """
     def __init__(self, launcher: Launcher):
         self.__launcher: Launcher = launcher
@@ -252,7 +253,7 @@ class Screen(object):
         It renders and handles all events
         """
         while self.__launcher.runner:
-            await asyncio.sleep(0.02)
+            await asyncio.sleep(0)
             clock = self.screen_config['clock']
             fps = self.screen_config['fps']
             try:

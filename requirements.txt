@@ -4,3 +4,4 @@ pygame>=2.5.2
 python-dotenv>=1.0.1
 websockets>=11.0.3
 python-dateutil
+aiosmtplib

@@ -34,7 +34,7 @@ from sqlite3 import Row
 import datetime
 import random
 import string
-import smtplib
+import aiosmtplib
 from email.mime.text import MIMEText
 from dotenv import load_dotenv
 from os import getenv
@@ -80,7 +80,7 @@ class RateLimitCacheDict(TypedDict):
     retry_after: Optional[datetime.datetime]
 
 
-class DBManager(object):
+class DBManager:
     """ Manages all the database interactions """
     def __init__(self, server: Server = None) -> None:
         # self.__pool: Optional[asqlite.Pool] = None
@@ -89,9 +89,13 @@ class DBManager(object):
         self.__fpwd_otp_cache: Dict[int, OTPCacheDict] = {}
         # fpwd is shorthanded for "forgot password" 
         self.__ratelimit_cache: Dict[websockets.WebSocketClientProtocol, RateLimitCacheDict] = {}
-        self.__mail_server = smtplib.SMTP('smtp.gmail.com', 587)
+        self.__mail_server = aiosmtplib.SMTP(
+            hostname='smtp.gmail.com',
+            port=587,
+            start_tls=True
+        )
         # port number 587 -> https://www.cloudflare.com/learning/email-security/smtp-port-25-587/
-        self.__mail_server.starttls()
+        # self.__mail_server.starttls()
         self.__sender_email: str = getenv('EMAIL')
         self.__sender_password: str = getenv('APP_PASSWORD')
         self.__mail_server.login(self.__sender_email, self.__sender_password)
@@ -142,9 +146,9 @@ class DBManager(object):
         """ The server calls this function; this ensures that an asyncio loop is running. """
         # loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
 
-        self.__conn: asqlite.Connection = await asqlite.connect('data.db')
+        # self.__conn: asqlite.Connection = await asqlite.connect('data.db')
 
-        # self.__pool: asqlite.Pool = await asqlite.create_pool('data.db')
+        self.__pool: asqlite.Pool = await asqlite.create_pool('data.db')
         await self.init_tables()
         asyncio.create_task(self.clear_cache())
 
@@ -260,17 +264,17 @@ class DBManager(object):
                 return d
 
         cursor: asqlite.Cursor
-        # async with self.__pool.acquire() as conn:
-        async with self.__conn.cursor() as cursor:
-            res = await cursor.execute(sql, *args, **kwargs)  # type: ignore
-            if ret:
-                if type(ret) == int and ret > 0:
-                    return fmt_type(await res.fetchmany(ret))
-                elif ret == 'one':
-                    return fmt_type(await res.fetchone())
-                elif ret == 'all':
-                    _all = await res.fetchall()
-                    return fmt_type(_all)
+        async with self.__pool.acquire() as conn:
+            async with conn.cursor() as cursor:
+                res = await cursor.execute(sql, *args, **kwargs)  # type: ignore
+                if ret:
+                    if type(ret) == int and ret > 0:
+                        return fmt_type(await res.fetchmany(ret))
+                    elif ret == 'one':
+                        return fmt_type(await res.fetchone())
+                    elif ret == 'all':
+                        _all = await res.fetchall()
+                        return fmt_type(_all)
 
     async def init_tables(self) -> None:
         """ Creates tables needed if they don't already exist """
@@ -624,7 +628,7 @@ class DBManager(object):
             'email': email,
             'password': password,
         }
-        self.send_otp_email(username, email, otp_code)
+        await self.send_otp_email(username, email, otp_code)
         await websocket.send(dumps({"notify": "sent_register_otp", "id": -2, "exp": future_5m.timestamp()}))
 
     async def send_fpwd_otp(self, username: str, email: str, websocket: websockets.WebSocketClientProtocol) -> Dict:
@@ -671,13 +675,13 @@ class DBManager(object):
             'username': username,
             'email': email,
         }
-        self.send_otp_email(username, email, otp_code)
+        await self.send_otp_email(username, email, otp_code)
         await websocket.send(dumps({"notify": "sent_fpwd_otp", "id": -2, "exp": future_5m.timestamp()}))
         return {
             "status": True,
         }
 
-    def send_otp_email(self, username: str, email: str, otp_code: int) -> None:
+    async def send_otp_email(self, username: str, email: str, otp_code: int) -> None:
         """Sends the OTP code to the provided email address using Gmail's SMTP server."""
         subject = 'Authentication Code [TheFall]'
         body = f"Hello {username}\nYour One Time Password is: {otp_code}\nThis code will expire in 5 minutes."
@@ -687,15 +691,23 @@ class DBManager(object):
         message['To'] = email
 
         try:
-            self.__mail_server.sendmail(self.__sender_email, [email], message.as_string())
-        except (smtplib.SMTPSenderRefused, smtplib.SMTPServerDisconnected) as e:
-            print(f"Excepted error {e.__class__.__name__}:\n{e}")
-            self.__mail_server = smtplib.SMTP('smtp.gmail.com', 587)
-            self.__mail_server.starttls()
-            self.__mail_server.login(self.__sender_email, self.__sender_password)
+            if not self.__mail_server.is_connected:
+                if self.__mail_server._connect_lock and self.__mail_server._connect_lock.locked():
+                    self.__mail_server.close()
+                await self.__mail_server.connect()
+            await self.__mail_server.send_message(message)
+        except aiosmtplib.SMTPException as e:
+            if not self.__mail_server.is_connected:
+                if self.__mail_server._connect_lock and self.__mail_server._connect_lock.locked():
+                    self.__mail_server.close()
+                await self.__mail_server.connect()
+            await self.__mail_server.login(self.__sender_email, self.__sender_password)
 
             # Retry sending the email
-            self.__mail_server.sendmail(self.__sender_email, [email], message.as_string())
+            try:
+                await self.__mail_server.send_message(message)
+            except Exception:
+                pass
 
     """ FRIENDS """
 

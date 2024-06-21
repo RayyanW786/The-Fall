@@ -46,7 +46,7 @@ if TYPE_CHECKING:
 EMAIL_RE = re.compile(r'([A-Za-z0-9]+[.-_])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+')
 
 
-class Handler(object):
+class Handler:
     """This class handles many of the pygame event loop for the buttons and inputboxes (views)"""
 
     def __init__(self, screen: Screen):
@@ -1015,7 +1015,7 @@ class Handler(object):
                 self.__started_game_check = True
                 asyncio.create_task(self.start_game('join'))
                 break
-            await asyncio.sleep(1)
+            await asyncio.sleep(0)
         self.__started_game_check = False
 
     async def lobby_invite(self) -> None:
@@ -1604,7 +1604,7 @@ class Handler(object):
                 colours['BLACK'], 'You have updated your account successfully'
                                   ', you will be returned to the main menu shortly'
             ))
-            await asyncio.sleep(5)
+            await asyncio.sleep(3)
             self.__data = {}
             self.__screen.clear_tasks()
             self.__screen.set_screen_minor(None)
