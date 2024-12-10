@@ -1,7 +1,7 @@
 """
 MIT License
 
-Copyright (c) 2024-present Rayyan Warraich
+Copyright (c) 2024-present Rayyan
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,15 +22,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-# Candidate No: 7168
-# Centre No: 20570
+import asyncio
+from multiprocessing import Process
+from typing import List, Tuple
+
+from launcher.launcher import Launcher
 
 """ This file was coded for the purpose of QOL for the testing video  """
-
-from multiprocessing import Process
-import asyncio
-from launcher import Launcher
-from typing import List, Tuple
 
 
 async def run_client(username: str, password: str) -> None:
@@ -41,7 +39,7 @@ def create_launcher_process(username: str, password: str) -> None:
     asyncio.run(run_client(username, password))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     clients: List[Tuple[str, str]] = [
         ("RAY", "Password1"),
         ("test", "Password1"),

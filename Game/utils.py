@@ -1,7 +1,7 @@
 """
 MIT License
 
-Copyright (c) 2024-present Rayyan Warraich
+Copyright (c) 2024-present Rayyan
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,19 +22,18 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-# Candidate No: 7168
-# Centre No: 20570
-
-import uuid
 import datetime
-from typing import Optional
-from dateutil.relativedelta import relativedelta
-from hashlib import md5
+import uuid
 from functools import partial
+from hashlib import md5
 from itertools import islice
+from typing import Optional
+
+from dateutil.relativedelta import relativedelta
+
 
 def generate_snowflake() -> str:
-    """ Creates a unique snowflake ID """
+    """Creates a unique snowflake ID"""
     timestamp = datetime.datetime.now().timestamp()
     unique_id = uuid.uuid4()
     timestamp_int = int(timestamp * 1000)
@@ -42,12 +41,14 @@ def generate_snowflake() -> str:
 
     return snowflake
 
+
 def encrypt(to_hash: str, salt: Optional[str] = None) -> str:
-    """ handles hashing and salting """
+    """handles hashing and salting"""
     if not salt:
-        salt = ''
+        salt = ""
     _hashed = md5((to_hash + salt).encode())
     return _hashed.hexdigest()
+
 
 # taken from https://github.com/more-itertools/more-itertools/blob/master/more_itertools/recipes.py
 
@@ -66,6 +67,7 @@ def take(n, iterable):
 
     """
     return list(islice(iterable, n))
+
 
 def chunked(iterable, n, strict=False):
     """Break *iterable* into lists of length *n*:
@@ -89,17 +91,18 @@ def chunked(iterable, n, strict=False):
     iterator = iter(partial(take, n, iter(iterable)), [])
     if strict:
         if n is None:
-            raise ValueError('n must not be None when using strict mode.')
+            raise ValueError("n must not be None when using strict mode.")
 
         def ret():
             for chunk in iterator:
                 if len(chunk) != n:
-                    raise ValueError('iterable is not divisible by n.')
+                    raise ValueError("iterable is not divisible by n.")
                 yield chunk
 
         return iter(ret())
     else:
         return iterator
+
 
 # End of code snippet taken from https://github.com/more-itertools/more-itertools/blob/master/more_itertools/more.py
 
@@ -108,40 +111,41 @@ def chunked(iterable, n, strict=False):
 # Use case: human_timedelta function takes in a datetime object and returns a human friendly / readable string denoting
 # the time for example: datetime.datetime -> '5 minutes'
 
+
 class plural:
     def __init__(self, value):
         self.value = value
 
     def __format__(self, format_spec):
         v = self.value
-        singular, sep, plural = format_spec.partition('|')
-        plural = plural or f'{singular}s'
+        singular, sep, plural = format_spec.partition("|")
+        plural = plural or f"{singular}s"
         if abs(v) != 1:
-            return f'{v} {plural}'
-        return f'{v} {singular}'
+            return f"{v} {plural}"
+        return f"{v} {singular}"
 
 
-def human_join(seq, delim=', ', final='or'):
+def human_join(seq, delim=", ", final="or"):
     size = len(seq)
     if size == 0:
-        return ''
+        return ""
 
     if size == 1:
         return seq[0]
 
     if size == 2:
-        return f'{seq[0]} {final} {seq[1]}'
+        return f"{seq[0]} {final} {seq[1]}"
 
-    return delim.join(seq[:-1]) + f' {final} {seq[-1]}'
+    return delim.join(seq[:-1]) + f" {final} {seq[-1]}"
 
 
 def human_timedelta(
-        dt: datetime.datetime,
-        *,
-        source: Optional[datetime.datetime] = None,
-        accuracy: Optional[int] = 3,
-        brief: bool = False,
-        suffix: bool = True,
+    dt: datetime.datetime,
+    *,
+    source: Optional[datetime.datetime] = None,
+    accuracy: Optional[int] = 3,
+    brief: bool = False,
+    suffix: bool = True,
 ) -> str:
     # now = source or datetime.datetime.now(datetime.timezone.utc)
     now = source or datetime.datetime.now()
@@ -166,40 +170,40 @@ def human_timedelta(
     # A query like "11 months" can be interpreted as "!1 months and 6 days"
     if dt > now:
         delta = relativedelta(dt, now)
-        output_suffix = ''
+        output_suffix = ""
     else:
         delta = relativedelta(now, dt)
-        output_suffix = ' ago' if suffix else ''
+        output_suffix = " ago" if suffix else ""
 
     attrs = [
-        ('year', 'y'),
-        ('month', 'mo'),
-        ('day', 'd'),
-        ('hour', 'h'),
-        ('minute', 'm'),
-        ('second', 's'),
+        ("year", "y"),
+        ("month", "mo"),
+        ("day", "d"),
+        ("hour", "h"),
+        ("minute", "m"),
+        ("second", "s"),
     ]
 
     output = []
     for attr, brief_attr in attrs:
-        elem = getattr(delta, attr + 's')
+        elem = getattr(delta, attr + "s")
         if not elem:
             continue
 
-        if attr == 'day':
+        if attr == "day":
             weeks = delta.weeks
             if weeks:
                 elem -= weeks * 7
                 if not brief:
-                    output.append(format(plural(weeks), 'week'))
+                    output.append(format(plural(weeks), "week"))
                 else:
-                    output.append(f'{weeks}w')
+                    output.append(f"{weeks}w")
 
         if elem <= 0:
             continue
 
         if brief:
-            output.append(f'{elem}{brief_attr}')
+            output.append(f"{elem}{brief_attr}")
         else:
             output.append(format(plural(elem), attr))
 
@@ -207,11 +211,12 @@ def human_timedelta(
         output = output[:accuracy]
 
     if len(output) == 0:
-        return 'now'
+        return "now"
     else:
         if not brief:
-            return human_join(output, final='and') + output_suffix
+            return human_join(output, final="and") + output_suffix
         else:
-            return ' '.join(output) + output_suffix
+            return " ".join(output) + output_suffix
+
 
 # End of code snippet taken from https://github.com/Rapptz/RoboDanny/blob/rewrite/cogs/utils

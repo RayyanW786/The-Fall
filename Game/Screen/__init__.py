@@ -1,7 +1,7 @@
 """
 MIT License
 
-Copyright (c) 2024-present Rayyan Warraich
+Copyright (c) 2024-present Rayyan
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,13 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-# Candidate No: 7168
-# Centre No: 20570
-
-from .screen import Screen
 from .game import Game
+from .screen import Screen
 
-__all__ = [
-    'Screen',
-    'Game'
-]
+__all__ = ["Screen", "Game"]
