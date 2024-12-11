@@ -121,12 +121,12 @@ class UIManager:
         # Focus and tabbing logic
         for event in events:
             for cat in self.elements:
-                for el_name, el in self.elements[cat].items():
+                for el_name, el in self.elements[cat].copy().items():
                     if hasattr(el, "handle_event"):
                         if iscoroutinefunction(el.handle_event):
                             await el.handle_event(event)
                         else:
-                            await asyncio.to_thread(el.handle_event, event)
+                            el.handle_event(event)
 
     async def run_tasks(self):
         # Draw all elements
@@ -163,6 +163,7 @@ class Screen:
         self.window: pygame.Surface = pygame.display.set_mode(
             self.win_size, pygame.RESIZABLE
         )
+        pygame.scrap.init()
         self.FONT: pygame.font.SysFont = FONT
         self.colours: Dict[str, Tuple[int, int, int]] = colours
         self.backgrounds: Dict[str, str] = backgrounds
@@ -316,10 +317,12 @@ class Screen:
                     else:
                         # If something is focused:
                         if self.tab_current_index is not None:
-                            el = self.get_focusable_elements()[self.tab_current_index]
-                            if isinstance(el, Button):
-                                el.click()
-
+                            try:
+                                el = self.get_focusable_elements()[self.tab_current_index]
+                                if isinstance(el, Button):
+                                    el.click()
+                            except IndexError:
+                                self.tab_current_index = None
         # Now pass events to UI elements
         await self.ui_manager.handle_events(events)
 

@@ -122,14 +122,14 @@ class DBManager:
             # _c stands for _copy
             _c = deepcopy(self.__register_cache)
             for _code in _c:  # type: int
-                assert isinstance(_c[_code], OTPCacheDict)
+                _c[_code]: OTPCacheDict # type: ignore
                 if _c[_code]["datetime"] <= now:
                     del self.__register_cache[_code]
 
             _c = deepcopy(self.__fpwd_otp_cache)
             now = datetime.datetime.now()
             for _code in _c:  # type: int
-                assert isinstance(_c[_code], OTPCacheDict)
+                _c[_code]: OTPCacheDict # type: ignore
                 if _c[_code]["datetime"] <= now:
                     del self.__fpwd_otp_cache[_code]
 
@@ -145,7 +145,7 @@ class DBManager:
                 _identifier += 1
 
             for _id in _pickle_friendly:  # type: int
-                assert isinstance(_pickle_friendly[_id], RateLimitCacheDict)
+                _pickle_friendly[_id]: RateLimitCacheDict # type: ignore
                 r_after = _pickle_friendly[_id]["retry_after"]
                 c_after = _pickle_friendly[_id]["clear_after"]
                 if r_after and (r_after - now) > datetime.timedelta(hours=1):
@@ -290,7 +290,6 @@ class DBManager:
         def fmt_type(r: Row | List[Row]) -> List | Dict | List[Dict | List]:
             if not r:
                 return r
-            
             if not isinstance(r, list):
                 return dict(r) if ret_type == "dict" else list(r)
             else:

@@ -262,7 +262,7 @@ class Client:
         self.__logger.info(f"CONNECTED {self.__websocket}")
         try:
             async for data in self.__websocket:
-                if isinstance(data, str):
+                if not isinstance(data, str):
                     data: str = data.decode()
 
                 if not data:

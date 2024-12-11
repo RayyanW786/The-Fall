@@ -331,7 +331,7 @@ class Text(UIElement):
             bg_colour = colours["TURQUOISE"]
         # Draw bg if needed:
         pygame.draw.rect(window, bg_colour, self.rect)
-        text_surface = self.__font.render(self.__text, True, self.__colour)
+        text_surface = self.__font.render(self.get_text, True, self.__colour)
         text_rect = text_surface.get_rect(center=self.rect.center)
         window.blit(text_surface, text_rect)
 

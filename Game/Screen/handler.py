@@ -562,164 +562,155 @@ class Handler:
             self.__screen.add_task("text", "output", _inst)
             asyncio.create_task(self.delete_alert({"output": _inst}, sleep_until=10))
 
-    async def view_profile(self, align_left: Optional[bool] = False) -> None:
-        """View user profile."""
+    async def view_profile(self, align_left: bool = False) -> None:
         self.__screen.loading = True
-        user_box = self.__screen.get_task("inputboxes", "query_user")
+        user_box = self.__screen.get_task('inputboxes', 'query_user')
         if not user_box:
-            self.__screen.loading = False
+            self.__screen.screen_config['loading'] = False
             x_factor = 0.4 if not align_left else 0.15
             y_factor = 0.25
-            _inst = Text(
-                self.__screen.ui_manager,
-                x_factor,
-                y_factor,
-                0.2,
-                0.05,
-                colours["BLACK"],
-                "User is a required field and is missing!",
-            )
-            self.__screen.add_task("text", "output", _inst)
-            asyncio.create_task(self.delete_alert({"output": _inst}))
-        else:
-            user = await self.__screen.client.get_or_fetch_user(str(user_box))
-            if not user:
-                self.__screen.loading = False
-                x_factor = 0.4 if not align_left else 0.15
-                y_factor = 0.25
-                _inst = Text(
+            self.__screen.add_task(
+                'text',
+                'output',
+                Text(
                     self.__screen.ui_manager,
-                    x_factor,
-                    y_factor,
-                    0.2,
-                    0.05,
-                    colours["BLACK"],
-                    f'User "{user_box}" not found!',
+                    x_factor, y_factor, 0.3, 0.05,
+                    colours['BLACK'], 'User is a required field and is missing!'
                 )
-                self.__screen.add_task("text", "output", _inst)
-                asyncio.create_task(self.delete_alert({"output": _inst}))
-            else:
-                user_stats = [
-                    f"Username: {user.username}, Displayname: {user.displayname}",
-                    f"KD: {user.kd} | Hours Played: {user.hours_played:,}",
-                    f"Games Played: {user.games_played:,} | Games Won: {user.games_won:,}",
-                    f"Total Kills: {user.total_kills:,} | Total Deaths: {user.total_deaths}",
-                ]
-                if user.username == self.__screen.client.root.username:
-                    user_stats.insert(0, "      (YOU)       ")
-                elif user.username in self.__screen.client.root.friends:
-                    user_stats.insert(0, "      (FRIEND)      ")
+            )
+            asyncio.create_task(self.delete_alert({'output': self.__screen.get_task('text', 'output')}))
+            return
 
-                y_start = 0.32 if not align_left else 0.3
-                x_start = 0.4 if not align_left else 0.1
-                self.__screen.loading = False
+        username_str = str(user_box)
+        user = await self.__screen.client.get_or_fetch_user(username_str)
+        if not user:
+            self.__screen.screen_config['loading'] = False
+            x_factor = 0.4 if not align_left else 0.15
+            y_factor = 0.25
+            self.__screen.add_task(
+                'text',
+                'output',
+                Text(
+                    self.__screen.ui_manager,
+                    x_factor, y_factor, 0.3, 0.05,
+                    colours['BLACK'], f'User "{username_str}" not found!'
+                )
+            )
+            asyncio.create_task(self.delete_alert({'output': self.__screen.get_task('text', 'output')}))
+            return
 
-                for idx, ln in enumerate(user_stats):
-                    self.__screen.add_task(
-                        "text",
-                        f"user_stats_{idx}",
-                        Text(
-                            self.__screen.ui_manager,
-                            x_start,
-                            y_start + (0.05 * idx),
-                            0.2,
-                            0.05,
-                            colours["BLACK"],
-                            ln,
-                            size=22,
-                        ),
-                    )
+        user_stats = [
+            f'Username: {user.username}, Displayname: {user.displayname}',
+            f'KD: {user.kd} | Hours Played: {user.hours_played:,}',
+            f'Games Played: {user.games_played:,} | Games Won: {user.games_won:,}',
+            f'Total Kills: {user.total_kills:,} | Total Deaths: {user.total_deaths}'
+        ]
+        if user.username == self.__screen.client.root.username:
+            user_stats.insert(0, '      (YOU)       ')
+        elif user.username in self.__screen.client.root.friends:
+            user_stats.insert(0, '      (FRIEND)      ')
 
-                outbound_requests = await self.__screen.client.get_outbound_requests()
-                inbound_requests = await self.__screen.client.get_inbound_requests()
-                if outbound_requests.get("error"):
-                    outbound_requests = {"result": []}
-                if inbound_requests.get("error"):
-                    inbound_requests = {"result": []}
-                outbound_requests = outbound_requests["result"]
-                inbound_requests = inbound_requests["result"]
+        start_y = 0.3 if not align_left else 0.3
+        x_factor = 0.15 if not align_left else 0.05
+        line_spacing = 0.05
+        current_y = start_y
+        total_idx = len(user_stats)
+        for idx, line_text in enumerate(user_stats):
+            current_y += line_spacing
+            self.__screen.add_task(
+                'text',
+                f'user_stats_{idx}',
+                Text(
+                    self.__screen.ui_manager,
+                    x_factor, current_y, 0.5, 0.05,
+                    colours['BLACK'], line_text, size=22
+                )
+            )
 
-                async def _action(
-                    user: User, _type: Literal["add", "remove", "close"]
-                ) -> None:
-                    if _type == "add":
-                        await self.add_friend(user)
-                    elif _type == "remove":
-                        await self.remove_friend(user)
-                    elif _type == "close":
-                        for idx in range(len(user_stats)):
-                            self.__screen.remove_task("text", f"user_stats_{idx}")
-                        self.__screen.remove_task("buttons", "close")
-                        self.__screen.remove_task("buttons", "add")
-                        self.__screen.remove_task("buttons", "remove")
+        outbound_requests = await self.__screen.client.get_outbound_requests()
+        inbound_requests = await self.__screen.client.get_inbound_requests()
+        if outbound_requests.get('error'):
+            outbound_requests = {'result': []}
+        if inbound_requests.get('error'):
+            inbound_requests = {'result': []}
+        outbound_requests = outbound_requests['result']
+        inbound_requests = inbound_requests['result']
+        self.__screen.loading = False
 
-                # Buttons
-                # position them relatively
-                # Add friend
-                if (
-                    user.username != self.__screen.client.root.username
-                    and user.username not in self.__screen.client.root.friends
-                    and user.username not in outbound_requests
-                ):
-                    self.__screen.add_task(
-                        "buttons",
-                        "add",
-                        Button(
-                            self.__screen.ui_manager,
-                            "Add",
-                            colours["BLURPLE"],
-                            colours["WHITE"],
-                            0.001 if align_left else 0.25,
-                            0.82,
-                            0.1,
-                            0.05,
-                            user,
-                            "add",
-                            action=_action,
-                        ),
-                    )
-                # Remove if friend or request pending
-                if user.username != self.__screen.client.root.username and (
+        async def _action(user: User, _type: Literal['add', 'remove', 'close']):
+            if _type == 'add':
+                add_btn.disabled = True
+                await self.add_friend(user)
+                if user.username not in outbound_requests:
+                    outbound_requests.append(user.username)
+                if user.username != self.__screen.client.root.username and any([
+                    user.username in outbound_requests,
+                    user.username in inbound_requests,
                     user.username in self.__screen.client.root.friends
-                    or user.username in outbound_requests
-                    or user.username in inbound_requests
-                ):
-                    self.__screen.add_task(
-                        "buttons",
-                        "remove",
-                        Button(
-                            self.__screen.ui_manager,
-                            "Remove",
-                            colours["BLURPLE"],
-                            colours["WHITE"],
-                            0.2 if align_left else 0.45,
-                            0.82,
-                            0.1,
-                            0.05,
-                            user,
-                            "remove",
-                            action=_action,
-                        ),
-                    )
+                ]):
+                    remove_btn.disabled = False
+                    if not self.__screen.get_task('buttons', 'remove'):
+                        self.__screen.add_task('buttons', 'remove', remove_btn)
+            elif _type == 'remove':
+                remove_btn.disabled = True
+                await self.remove_friend(user)
+                if user.username in outbound_requests:
+                    outbound_requests.remove(user.username)
+                if user.username != self.__screen.client.root.username and all([
+                    user.username not in self.__screen.client.root.friends,
+                    user.username not in outbound_requests
+                ]):
+                    add_btn.disabled = False
+                    if not self.__screen.get_task('buttons', 'add'):
+                        self.__screen.add_task('buttons', 'add', add_btn)
+            elif _type == 'close':
+                self.__screen.remove_task('buttons', 'close')
+                self.__screen.remove_task('buttons', 'add')
+                self.__screen.remove_task('buttons', 'remove')
+                for i in range(total_idx):
+                    self.__screen.remove_task('text', f'user_stats_{i}')
 
-                # Close
-                self.__screen.add_task(
-                    "buttons",
-                    "close",
-                    Button(
-                        self.__screen.ui_manager,
-                        "Close",
-                        colours["RED"],
-                        colours["WHITE"],
-                        0.1 if align_left else 0.35,
-                        0.82,
-                        0.1,
-                        0.05,
-                        user,
-                        "close",
-                        action=_action,
-                    ),
-                )
+        add_x = 0.25 if not align_left else 0
+        close_x = 0.35 if not align_left else 0.1
+        remove_x = 0.45 if not align_left else 0.2
+        y_buttons = 0.7
+        w_factor = 0.1
+        h_factor = 0.05
+
+        add_btn = Button(
+            self.__screen.ui_manager,
+            'Add', colours['BLURPLE'], colours['WHITE'],
+            add_x, y_buttons, w_factor, h_factor,
+            user, 'add', action=_action
+        )
+
+        close_btn = Button(
+            self.__screen.ui_manager,
+            'Close', colours['RED'], colours['WHITE'],
+            close_x, y_buttons, w_factor, h_factor,
+            user, 'close', action=_action
+        )
+        self.__screen.add_task('buttons', 'close', close_btn)
+
+        remove_btn = Button(
+            self.__screen.ui_manager,
+            'Remove', colours['BLURPLE'], colours['WHITE'],
+            remove_x, y_buttons, w_factor, h_factor,
+            user, 'remove', action=_action
+        )
+
+        if user.username == self.__screen.client.root.username:
+            add_btn.disabled = True
+            remove_btn.disabled = True
+        else:
+            if user.username in self.__screen.client.root.friends or user.username in inbound_requests or user.username in outbound_requests:
+                remove_btn.disabled = False
+                add_btn.disabled = True
+                self.__screen.add_task('buttons', 'remove', remove_btn)
+            else:
+                add_btn.disabled = False
+                remove_btn.disabled = True
+                self.__screen.add_task('buttons', 'add', add_btn)
 
     def create_paginator(
         self,
@@ -744,12 +735,16 @@ class Handler:
         }
 
         def _paginator():
-            data = self.__data["paginator"][name]
+            data = self.__data["paginator"].get(name)
+            if not data:
+                return
             per_page = data["per_page"]
             pages = data["pages"]
             current_page = data["current_page"]
+            total = data["total"]
+            _page = current_page + 1
 
-            # clear old entries
+            # Clear old entries
             for idx in range(per_page):
                 self.__screen.remove_task("text", f"entry_{idx}")
             self.__screen.remove_task("text", f"page_info_{name}")
@@ -780,6 +775,9 @@ class Handler:
                             size=entry_size,
                         ),
                     )
+                else:
+                    # If empty entry, remove old text if any
+                    self.__screen.remove_task("text", f"entry_{idx}")
 
             page_info = Text(
                 self.__screen.ui_manager,
@@ -788,7 +786,7 @@ class Handler:
                 0.05,
                 0.05,
                 colours["BLACK"],
-                f"page {current_page + 1:,}/{len(pages)}",
+                f"page {_page:,}/{len(pages)}",
             )
             self.__screen.add_task("text", f"page_info_{name}", page_info)
             total_entries = Text(
@@ -798,9 +796,26 @@ class Handler:
                 0.05,
                 0.05,
                 colours["BLACK"],
-                f'total entries: {data["total"]:,}',
+                f"total entries: {total:,}",
             )
             self.__screen.add_task("text", f"total_entries_{name}", total_entries)
+
+            # Dynamically enable/disable previous and next buttons
+            previous_btn: Button = self.__screen.get_task("buttons", f"previous_page_{name}")
+            next_btn: Button = self.__screen.get_task("buttons", f"next_page_{name}")
+            if not previous_btn or not next_btn:
+                return
+            # If we are on the first page, previous is disabled
+            if _page == 1:
+                previous_btn.disabled = True
+            else:
+                previous_btn.disabled = False
+
+            # If we are on the last page, next is disabled
+            if _page == len(pages):
+                next_btn.disabled = True
+            else:
+                next_btn.disabled = False
 
         def increment_page():
             data = self.__data["paginator"][name]
@@ -873,6 +888,7 @@ class Handler:
 
         return _paginator
 
+
     def remove_paginators(self, names: Optional[List[str]] = None) -> None:
         if not self.__data.get("paginator"):
             return
@@ -903,7 +919,7 @@ class Handler:
             text = Text(
                 self.__screen.ui_manager,
                 0.7,
-                0.45,
+                0.25,
                 0.1,
                 0.05,
                 colours["BLACK"],
@@ -1104,7 +1120,7 @@ class Handler:
             text = Text(
                 self.__screen.ui_manager,
                 0.7,
-                0.45,
+                0.25,
                 0.1,
                 0.05,
                 colours["BLACK"],
@@ -1116,7 +1132,7 @@ class Handler:
             text = Text(
                 self.__screen.ui_manager,
                 0.7,
-                0.45,
+                0.25,
                 0.1,
                 0.05,
                 colours["BLACK"],

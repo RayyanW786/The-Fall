@@ -116,7 +116,7 @@ class Server:
             "track_game_finish": []
         }  # List of client tokens.
         self.__player_stats: Dict[str, Dict] = {}
-        self.__logger: logging.Logger = logging.Logger("Server")
+        self.__logger: logging.Logger = logging.getLogger("Server")
         # this salt is only used to create an authentication token after logging in
 
     @property
@@ -133,13 +133,13 @@ class Server:
 
     async def on_connect(self, websocket: ServerConnection) -> None:
         """Called when a WebSocket connection is accepted."""
-        self.__logger.info("New connection from", websocket.remote_address)
+        self.__logger.info(f"New connection from {websocket.remote_address}")
         self.__clients.add(websocket)
         await websocket.send(dumps({"command": "ON_CONNECT", "id": 0}).encode())
 
     async def on_remove(self, websocket: ServerConnection) -> None:
         """Called when a WebSocket connection is removed."""
-        self.__logger.info("Connection closed from", websocket.remote_address)
+        self.__logger.info(f"Connection closed from {websocket.remote_address}")
         if websocket in self.__clients:
             self.__clients.remove(websocket)
             if websocket in self.__clients_auth:
@@ -182,7 +182,7 @@ class Server:
                                 _root.lobby_id, _root.username, "leave"
                             )
                         except Exception as e:
-                            self.__logger.warning(e)
+                            self.__logger.error(e)
 
                 if game:
                     await self.__db.add_game_id(_root.username, _root.last_game_id)
@@ -687,7 +687,7 @@ class Server:
                 data: bytes = await websocket.recv()
             except (websockets.ConnectionClosedError, websockets.ConnectionClosedOK):
                 self.__logger.info(
-                    "Client", websocket.remote_address, "has disconnected!"
+                    f"Client {websocket.remote_address} has disconnected!"
                 )
                 await self.on_remove(websocket)
                 break
@@ -1324,6 +1324,7 @@ class Server:
             self.accept,
             "localhost",
             50000,  # Port 50,000
+            logger=self.__logger
         )
 
         await server.wait_closed()
